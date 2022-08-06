@@ -5,7 +5,7 @@ namespace App\Console\Commands;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Http;
 
-class CrawelWarrant extends Command
+class CrawlWarrant extends Command
 {
     const URL = 'https://www.warrantwin.com.tw/eyuanta/ws/GetWarData.ashx';
     /**
