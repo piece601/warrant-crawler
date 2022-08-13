@@ -13,7 +13,7 @@ class CrawlWarrant extends Command
      *
      * @var string
      */
-    protected $signature = 'crawl {stock}';
+    protected $signature = 'crawl {stock} {percentage?} {period?}';
 
     /**
      * The console command description.
@@ -30,23 +30,34 @@ class CrawlWarrant extends Command
     public function handle()
     {
         $stockNumber = $this->argument('stock');
-        $payload = json_encode($this->getPayload($stockNumber));
+        $pricePercentage = $this->argument('percentage') ?? '30';
+        $period =  $this->argument('period') ?? '180';
+        $payload = json_encode($this->getPayload($stockNumber, $pricePercentage, $period));
         $resource = Http::asForm()->post(self::URL, [
             'data' => $payload
         ]);
+        echo $this->getTitle();
         $resource = $this->parserResponse($resource->body());
-        echo "#stock\tname\t總價\t成交價\t委賣價\t量\t剩餘天數\t湊一張\t槓桿" . PHP_EOL;
         foreach ($resource as $stock) {
             echo $stock['FLD_WAR_ID'] . "\t";
             echo $stock['FLD_WAR_NM'] . "\t";
-            echo round($stock['sellPrice'], 2) . "\t";
+            echo round($stock['actualPrice'], 2) . "\t";
             echo $stock['FLD_WAR_TXN_PRICE'] . "\t";
             echo $stock['FLD_WAR_SELL_PRICE'] . "\t";
             echo $stock['FLD_WAR_TXN_VOLUME'] . "\t";
             echo $stock['FLD_PERIOD'] . "\t";
             echo round(1/(double)$stock['FLD_N_UND_CONVER'], 1) . "\t";
-            echo $stock['leverage'] . PHP_EOL;
+            echo $stock['leverage'] . "\t";
+            echo $stock['leveragePerRisk'] . "\t";
+            echo $stock['leveragePerActualPrice'] . "\t";
+            echo $stock['risk'] . PHP_EOL;
         }
+        echo $this->getTitle();
+    }
+
+    private function getTitle()
+    {
+        return "#stock\tname\t總價\t成交價\t委賣價\t量\t剩餘天數\t湊一張\t倍率\t倍率風險比\t倍率總價比\t風險" . PHP_EOL;
     }
 
     private function parserResponse(string $data) : array
@@ -54,8 +65,10 @@ class CrawlWarrant extends Command
         $data = json_decode($data, true);
         $data = $data['result'];
         foreach ($data as $key => &$row) {
+            // 成交價
             $sellPrice = (double)$row['FLD_WAR_TXN_PRICE'];
             if (empty($sellPrice)) {
+                // 委賣價
                 $sellPrice = (double)$row['FLD_WAR_SELL_PRICE'];
             }
 
@@ -65,14 +78,30 @@ class CrawlWarrant extends Command
             }
 
             $sellPrice = (double)$sellPrice;
+            // 行使比例
             $rate = (double)$row['FLD_N_UND_CONVER'];
-            $row['leverage'] = round((double)$row['FLD_OBJ_TXN_PRICE'] / ($sellPrice / $rate), 1);
-            $row['sellPrice'] = $row['FLD_N_STRIKE_PRC'] + $sellPrice / $rate;
+            // 當前股價
+            $stockPrice = (double)$row['FLD_OBJ_TXN_PRICE'];
+            // 履約價
+            $agreement = (double)$row['FLD_N_STRIKE_PRC'];
+            // 倍率
+            $leverage = $stockPrice / ($sellPrice / $rate);
+            $row['leverage'] = round($leverage, 4);
+            // 實質價格
+            $row['actualPrice'] = $agreement + $sellPrice / $rate;
+            // 價差
+            $priceDiff = $row['actualPrice'] - $stockPrice;
+            // 風險 每一天所承擔的價差
+            $row['risk'] = $risk = $priceDiff / $row['FLD_PERIOD'];
+            // 倍率風險比
+            $row['leveragePerRisk'] = round($leverage / $risk, 4);
+            // 倍率總價比
+            $row['leveragePerActualPrice'] = round($leverage / $row['actualPrice'], 4);
         }
         unset($row);
 
         usort($data, function ($prev, $next) {
-            return $prev['sellPrice'] > $next['sellPrice'] ? -1 : 1;
+            return $prev['risk'] > $next['risk'] ? -1 : 1;
         });
         return $data;
     }
