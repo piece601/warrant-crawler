@@ -50,7 +50,7 @@ class CrawlWarrant extends Command
             echo $stock['leverage'] . "\t";
             echo $stock['leveragePerRisk'] . "\t";
             echo $stock['leveragePerActualPrice'] . "\t";
-            echo $stock['risk'] . PHP_EOL;
+            echo round($stock['risk'], 2) . PHP_EOL;
         }
         echo $this->getTitle();
     }
