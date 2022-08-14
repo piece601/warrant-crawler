@@ -65,6 +65,10 @@ class CrawlWarrant extends Command
         $data = json_decode($data, true);
         $data = $data['result'];
         foreach ($data as $key => &$row) {
+            if ($row['FLD_OPTION_TYPE'] == '歐式') {
+                unset($data[$key]);
+                continue;
+            }
             // 成交價
             $sellPrice = (double)$row['FLD_WAR_TXN_PRICE'];
             if (empty($sellPrice)) {
