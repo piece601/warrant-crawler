@@ -31,7 +31,7 @@ class CrawlWarrant extends Command
     {
         $stockNumber = $this->argument('stock');
         $pricePercentage = $this->argument('percentage') ?? '30';
-        $period =  $this->argument('period') ?? '180';
+        $period =  $this->argument('period') ?? '100';
         $payload = json_encode($this->getPayload($stockNumber, $pricePercentage, $period));
         $resource = Http::asForm()->post(self::URL, [
             'data' => $payload
