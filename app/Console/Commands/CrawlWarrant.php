@@ -50,14 +50,15 @@ class CrawlWarrant extends Command
             echo $stock['leverage'] . "\t";
             echo $stock['leveragePerRisk'] . "\t";
             echo $stock['leveragePerActualPrice'] . "\t";
-            echo round($stock['risk'], 2) . PHP_EOL;
+            echo round($stock['risk'], 2) . "\t";
+            echo $stock['FLD_N_STRIKE_PRC'] . PHP_EOL;
         }
         echo $this->getTitle();
     }
 
     private function getTitle()
     {
-        return "#stock\tname\t總價\t成交價\t委賣價\t量\t剩餘天數\t湊一張\t倍率\t倍率風險比\t倍率總價比\t風險" . PHP_EOL;
+        return "#stock\tname\t總價\t成交價\t委賣價\t量\t剩餘天數\t湊一張\t倍率\t倍率風險比\t倍率總價比\t風險\t履約價" . PHP_EOL;
     }
 
     private function parserResponse(string $data) : array
@@ -105,15 +106,15 @@ class CrawlWarrant extends Command
         unset($row);
 
         usort($data, function ($prev, $next) {
-            return $prev['risk'] > $next['risk'] ? -1 : 1;
+            return $prev['actualPrice'] > $next['actualPrice'] ? -1 : 1;
         });
         return $data;
     }
 
     private function getPayload(
         string $stockNumber,
-        string $pricePercentage = '15',
-        string $period = '180'
+        string $pricePercentage,
+        string $period
     ) {
         return [
             'callback' => '01',
