@@ -13,7 +13,7 @@ class CrawlWarrant extends Command
      *
      * @var string
      */
-    protected $signature = 'crawl {stock} {percentage?} {period?}';
+    protected $signature = 'crawl {stock} {period?} {percentage?}';
 
     /**
      * The console command description.
@@ -30,7 +30,7 @@ class CrawlWarrant extends Command
     public function handle()
     {
         $stockNumber = $this->argument('stock');
-        $pricePercentage = $this->argument('percentage') ?? '50';
+        $pricePercentage = $this->argument('percentage') ?? '100';
         $period =  $this->argument('period') ?? '100';
         $payload = json_encode($this->getPayload($stockNumber, $pricePercentage, $period));
         $resource = Http::asForm()->post(self::URL, [
@@ -51,14 +51,14 @@ class CrawlWarrant extends Command
             echo $stock['leveragePerRisk'] . "\t";
             echo $stock['leveragePerActualPrice'] . "\t";
             echo round($stock['risk'], 2) . "\t";
-            echo $stock['FLD_N_STRIKE_PRC'] . PHP_EOL;
+            echo $stock['ticketPrice'] . PHP_EOL;
         }
         echo $this->getTitle();
     }
 
     private function getTitle()
     {
-        return "#stock\tname\t總價\t成交價\t委賣價\t量\t剩餘天數\t湊一張\t倍率\t倍率風險比\t倍率總價比\t風險\t履約價" . PHP_EOL;
+        return "#stock\tname\t總價\t成交價\t委賣價\t量\t剩餘天數\t湊一張\t倍率\t倍率風險比\t倍率總價比\t風險\t張價" . PHP_EOL;
     }
 
     private function parserResponse(string $data) : array
@@ -102,6 +102,8 @@ class CrawlWarrant extends Command
             $row['leveragePerRisk'] = round($leverage / $risk, 4);
             // 倍率總價比
             $row['leveragePerActualPrice'] = round($leverage / $row['actualPrice'], 4);
+
+            $row['ticketPrice'] = round($sellPrice / $row['FLD_N_UND_CONVER']);
         }
         unset($row);
 
