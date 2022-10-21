@@ -108,7 +108,7 @@ class CrawlWarrant extends Command
         unset($row);
 
         usort($data, function ($prev, $next) {
-            return $prev['actualPrice'] > $next['actualPrice'] ? -1 : 1;
+            return $prev['risk'] > $next['risk'] ? -1 : 1;
         });
         return $data;
     }
