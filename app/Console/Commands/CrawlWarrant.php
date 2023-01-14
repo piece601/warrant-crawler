@@ -39,9 +39,15 @@ class CrawlWarrant extends Command
         echo $this->getTitle();
         $resource = $this->parserResponse($resource->body());
         foreach ($resource as $stock) {
+            // 履約價 > 股價 1.1 倍
+            if ((double)$stock['FLD_N_STRIKE_PRC'] > (double)$stock['FLD_OBJ_TXN_PRICE'] * 1.1) {
+                continue;
+            }
+            // 總價
+            $actualPrice = round($stock['actualPrice'], 2);
             echo $stock['FLD_WAR_ID'] . "\t";
             echo $stock['FLD_WAR_NM'] . "\t";
-            echo round($stock['actualPrice'], 2) . "\t";
+            echo $actualPrice . "\t";
             echo $stock['FLD_WAR_TXN_PRICE'] . "\t";
             echo $stock['FLD_WAR_SELL_PRICE'] . "\t";
             echo $stock['FLD_WAR_TXN_VOLUME'] . "\t";
