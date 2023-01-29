@@ -4,6 +4,8 @@ namespace App\Console\Commands;
 
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Http;
+use Symfony\Component\Console\Helper\Table;
+use Symfony\Component\Console\Output\ConsoleOutput;
 
 class CrawlWarrant extends Command
 {
@@ -13,7 +15,7 @@ class CrawlWarrant extends Command
      *
      * @var string
      */
-    protected $signature = 'crawl {stock} {period?} {percentage?}';
+    protected $signature = 'crawl {stock?} {period?} {percentage?}';
 
     /**
      * The console command description.
@@ -29,42 +31,61 @@ class CrawlWarrant extends Command
      */
     public function handle()
     {
-        $stockNumber = $this->argument('stock');
+        $stockNumber = $this->argument('stock') ?? "\$TWT";
         $pricePercentage = $this->argument('percentage') ?? '100';
         $period =  $this->argument('period') ?? '100';
         $payload = json_encode($this->getPayload($stockNumber, $pricePercentage, $period));
         $resource = Http::asForm()->post(self::URL, [
             'data' => $payload
         ]);
-        echo $this->getTitle();
+        $table = new Table(new ConsoleOutput());
+        $table->setHeaders([
+            '類型',
+            'stock',
+            'name',
+            '總價',
+            '成交價',
+            '委賣價',
+            '量',
+            '剩餘天數',
+            '湊一張',
+            '風險',
+            '張價',
+            '成槓',
+            '實槓',
+        ]);
+
         $resource = $this->parserResponse($resource->body());
         foreach ($resource as $stock) {
+
+            // if ($stock['FLD_LEVERAGE'] < 7) {
+            //     continue;
+            // }
             // 履約價 > 股價 1.1 倍
-            if ((double)$stock['FLD_N_STRIKE_PRC'] > (double)$stock['FLD_OBJ_TXN_PRICE'] * 1.1) {
-                continue;
-            }
+            // if ((double)$stock['FLD_N_STRIKE_PRC'] > (double)$stock['FLD_OBJ_TXN_PRICE'] * 1.2) {
+            //     continue;
+            // }
             // 總價
             $actualPrice = round($stock['actualPrice'], 2);
-            echo $stock['FLD_WAR_ID'] . "\t";
-            echo $stock['FLD_WAR_NM'] . "\t";
-            echo $actualPrice . "\t";
-            echo $stock['FLD_WAR_TXN_PRICE'] . "\t";
-            echo $stock['FLD_WAR_SELL_PRICE'] . "\t";
-            echo $stock['FLD_WAR_TXN_VOLUME'] . "\t";
-            echo $stock['FLD_PERIOD'] . "\t";
-            echo round(1/(double)$stock['FLD_N_UND_CONVER'], 1) . "\t";
-            echo $stock['leverage'] . "\t";
-            echo $stock['leveragePerRisk'] . "\t";
-            echo $stock['leveragePerActualPrice'] . "\t";
-            echo round($stock['risk'], 2) . "\t";
-            echo $stock['ticketPrice'] . PHP_EOL;
-        }
-        echo $this->getTitle();
-    }
 
-    private function getTitle()
-    {
-        return "#stock\tname\t總價\t成交價\t委賣價\t量\t剩餘天數\t湊一張\t倍率\t倍率風險比\t倍率總價比\t風險\t張價" . PHP_EOL;
+            $table->addRow([
+                $stock['FLD_OPTION_TYPE'],
+                $stock['FLD_WAR_ID'],
+                $stock['FLD_WAR_NM'],
+                $actualPrice,
+                $stock['FLD_WAR_TXN_PRICE'],
+                $stock['FLD_WAR_SELL_PRICE'],
+                $stock['FLD_WAR_TXN_VOLUME'],
+                $stock['FLD_PERIOD'],
+                round(1/(double)$stock['FLD_N_UND_CONVER'], 1),
+                round($stock['risk'], 2),
+                $stock['ticketPrice'],
+                $stock['leverage'],
+                $stock['FLD_LEVERAGE'],
+            ]);
+        }
+
+        $table->render();
     }
 
     private function parserResponse(string $data) : array
@@ -72,10 +93,6 @@ class CrawlWarrant extends Command
         $data = json_decode($data, true);
         $data = $data['result'];
         foreach ($data as $key => &$row) {
-            if ($row['FLD_OPTION_TYPE'] == '歐式') {
-                unset($data[$key]);
-                continue;
-            }
             // 成交價
             $sellPrice = (double)$row['FLD_WAR_TXN_PRICE'];
             if (empty($sellPrice)) {
@@ -114,7 +131,9 @@ class CrawlWarrant extends Command
         unset($row);
 
         usort($data, function ($prev, $next) {
-            return $prev['actualPrice'] > $next['actualPrice'] ? -1 : 1;
+            // return $prev['FLD_LEVERAGE'] > $next['FLD_LEVERAGE'] ? 1 : -1;
+            return abs(1 - $prev['FLD_LEVERAGE'] / $prev['leverage']) > abs(1 - $next['FLD_LEVERAGE'] / $next['leverage']) ? -1 : 1;
+            // return $prev['actualPrice'] > $next['actualPrice'] ? -1 : 1;
         });
         return $data;
     }
