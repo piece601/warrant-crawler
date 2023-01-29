@@ -15,7 +15,7 @@ class CrawlWarrant extends Command
      *
      * @var string
      */
-    protected $signature = 'crawl {stock?} {period?} {percentage?}';
+    protected $signature = 'crawl {stock?}';
 
     /**
      * The console command description.
@@ -32,9 +32,10 @@ class CrawlWarrant extends Command
     public function handle()
     {
         $stockNumber = $this->argument('stock') ?? "\$TWT";
-        $pricePercentage = $this->argument('percentage') ?? '100';
-        $period =  $this->argument('period') ?? '100';
-        $payload = json_encode($this->getPayload($stockNumber, $pricePercentage, $period));
+        $period =  env('DAYS') ?? '100';
+        $pricePercentage = env('PERCENTAGE') ?? '100';
+        $type = env('TYPE') ?? '1';
+        $payload = json_encode($this->getPayload($stockNumber, $pricePercentage, $period, $type));
         $resource = Http::asForm()->post(self::URL, [
             'data' => $payload
         ]);
@@ -132,7 +133,7 @@ class CrawlWarrant extends Command
 
         usort($data, function ($prev, $next) {
             // return $prev['FLD_LEVERAGE'] > $next['FLD_LEVERAGE'] ? 1 : -1;
-            return abs(1 - $prev['FLD_LEVERAGE'] / $prev['leverage']) > abs(1 - $next['FLD_LEVERAGE'] / $next['leverage']) ? -1 : 1;
+            return abs(1 - abs($prev['FLD_LEVERAGE'] / $prev['leverage'])) > abs(1 - abs($next['FLD_LEVERAGE'] / $next['leverage'])) ? -1 : 1;
             // return $prev['actualPrice'] > $next['actualPrice'] ? -1 : 1;
         });
         return $data;
@@ -141,7 +142,8 @@ class CrawlWarrant extends Command
     private function getPayload(
         string $stockNumber,
         string $pricePercentage,
-        string $period
+        string $period,
+        string $warType
     ) {
         return [
             'callback' => '01',
@@ -149,7 +151,7 @@ class CrawlWarrant extends Command
                 'columns' => $this->getColumns(),
                 'condition' => [
                     $this->getStockCondition($stockNumber),
-                    $this->getWarType(),
+                    $this->getWarType($warType),
                     $this->getPriceRange($pricePercentage),
                     $this->getPeriod($period)
                 ],
@@ -180,12 +182,12 @@ class CrawlWarrant extends Command
         ];
     }
 
-    private function getWarType()
+    private function getWarType(string $warType)
     {
         return [
             'field' => 'FLD_WAR_TYPE',
             'values' => [
-                '1',
+                $warType,
             ]
         ];
     }
