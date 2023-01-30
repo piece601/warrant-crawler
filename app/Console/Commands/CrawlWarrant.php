@@ -133,7 +133,7 @@ class CrawlWarrant extends Command
 
         usort($data, function ($prev, $next) {
             // return $prev['FLD_LEVERAGE'] > $next['FLD_LEVERAGE'] ? 1 : -1;
-            return abs(1 - abs($prev['FLD_LEVERAGE'] / $prev['leverage'])) > abs(1 - abs($next['FLD_LEVERAGE'] / $next['leverage'])) ? -1 : 1;
+            return abs(1 - abs((float)$prev['FLD_LEVERAGE'] / (float)$prev['leverage'])) > abs(1 - abs((float)$next['FLD_LEVERAGE'] / (float)$next['leverage'])) ? -1 : 1;
             // return $prev['actualPrice'] > $next['actualPrice'] ? -1 : 1;
         });
         return $data;
