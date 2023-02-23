@@ -16,7 +16,7 @@ class CrawlWarrant extends Command
         'TYPE' => '認購/認售 {1: 認購, 2: 認售} (default: 1)',
         'PERCENTAGE' => '價內價外多少 % (default: 100)',
         'LEV' => '實質槓桿多少倍以上 (default: 0)',
-        'MODE' => '排序模式 {1: 實槓, 2: 風險(每日承擔成本), 3: 實槓近成槓 4: 剩餘天數x槓桿÷總價} (default: 總價), 5: 漲幅排行 6: 成交量',
+        'MODE' => '排序模式 {1: 實槓, 2: 風險(每日承擔成本), 3: 實槓近成槓 4: 剩餘天數x槓桿÷總價 (default: 總價), 5: 漲幅排行 6: 成交量}',
         'MONEY' => '價內外 {1: 價內, 2: 價外} (default: 全部)',
     ];
 
