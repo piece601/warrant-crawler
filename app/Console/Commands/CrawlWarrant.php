@@ -16,7 +16,7 @@ class CrawlWarrant extends Command
         'TYPE' => '認購/認售 {1: 認購, 2: 認售} (default: 1)',
         'PERCENTAGE' => '價內價外多少 % (default: 100)',
         'LEV' => '實質槓桿多少倍以上 (default: 0)',
-        'MODE' => '排序模式 {1: 實槓, 2: 風險(每日承擔成本), 3: 實槓近成槓} (default: 總價)',
+        'MODE' => '排序模式 {1: 實槓, 2: 風險(每日承擔成本), 3: 實槓近成槓 4: 剩餘天數x槓桿÷總價} (default: 總價)',
         'MONEY' => '價內外 {1: 價內, 2: 價外} (default: 全部)',
     ];
 
@@ -115,12 +115,9 @@ class CrawlWarrant extends Command
         $data = json_decode($data, true);
         $data = $data['result'];
         foreach ($data as $key => &$row) {
-            // 成交價
-            $sellPrice = (double)$row['FLD_WAR_TXN_PRICE'];
-            if (empty($sellPrice)) {
-                // 委賣價
-                $sellPrice = (double)$row['FLD_WAR_SELL_PRICE'];
-            }
+
+            // 委賣價 || 成交價
+            $sellPrice = (double)$row['FLD_WAR_SELL_PRICE'] ?? (double)$row['FLD_WAR_TXN_PRICE'];
 
             if (empty($sellPrice)) {
                 unset($data[$key]);
@@ -149,6 +146,7 @@ class CrawlWarrant extends Command
             $row['leveragePerActualPrice'] = round($leverage / $row['actualPrice'], 4);
 
             $row['ticketPrice'] = round($sellPrice / $row['FLD_N_UND_CONVER']);
+            $row['secret'] = $row['FLD_PERIOD'] * $leverage / $row['actualPrice'];
         }
         unset($row);
 
@@ -163,6 +161,10 @@ class CrawlWarrant extends Command
 
             if (env('MODE') == '3') {
                 return abs(1 - abs((float)$prev['FLD_LEVERAGE'] / (float)$prev['leverage'])) > abs(1 - abs((float)$next['FLD_LEVERAGE'] / (float)$next['leverage'])) ? -1 : 1;
+            }
+
+            if (env('MODE') == '4') {
+                return $prev['secret'] > $next['secret'] ? 1 : -1;
             }
 
             return $prev['actualPrice'] > $next['actualPrice'] ? -1 : 1;
