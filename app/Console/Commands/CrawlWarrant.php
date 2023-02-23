@@ -16,7 +16,7 @@ class CrawlWarrant extends Command
         'TYPE' => '認購/認售 {1: 認購, 2: 認售} (default: 1)',
         'PERCENTAGE' => '價內價外多少 % (default: 100)',
         'LEV' => '實質槓桿多少倍以上 (default: 0)',
-        'SORT' => '排序模式 {1: 實槓, 2: 風險(每日承擔成本), 3: 實槓近成槓 4: 槓桿÷價差, 5: 漲幅排行 6: 成交量}',
+        'SORT' => '排序模式 {1: 成槓, 2: 風險(每日承擔成本), 3: 實槓近成槓 4: 槓桿÷價差, 5: 漲幅排行 6: 成交量}',
         'MONEY' => '價內外 {1: 價內, 2: 價外} (default: 全部)',
     ];
 
@@ -155,7 +155,7 @@ class CrawlWarrant extends Command
 
         usort($data, function ($prev, $next) {
             if (env('SORT') == '1') {
-                return $prev['FLD_LEVERAGE'] > $next['FLD_LEVERAGE'] ? 1 : -1;
+                return $prev['leverage'] > $next['leverage'] ? 1 : -1;
             }
 
             if (env('SORT') == '2') {
