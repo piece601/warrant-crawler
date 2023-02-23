@@ -16,7 +16,7 @@ class CrawlWarrant extends Command
         'TYPE' => '認購/認售 {1: 認購, 2: 認售} (default: 1)',
         'PERCENTAGE' => '價內價外多少 % (default: 100)',
         'LEV' => '實質槓桿多少倍以上 (default: 0)',
-        'MODE' => '排序模式 {1: 實槓, 2: 風險(每日承擔成本), 3: 實槓近成槓 4: 剩餘天數x槓桿÷總價} (default: 總價), 5: 漲幅排行',
+        'MODE' => '排序模式 {1: 實槓, 2: 風險(每日承擔成本), 3: 實槓近成槓 4: 剩餘天數x槓桿÷總價} (default: 總價), 5: 漲幅排行 6: 成交量',
         'MONEY' => '價內外 {1: 價內, 2: 價外} (default: 全部)',
     ];
 
@@ -62,9 +62,9 @@ class CrawlWarrant extends Command
             '湊一張',
             '風險',
             '張價',
+            '%',
             '成槓',
             '實槓',
-            '%',
         ]);
 
         $resource = $this->parserResponse($resource->body());
@@ -102,9 +102,9 @@ class CrawlWarrant extends Command
                 round(1/(double)$stock['FLD_N_UND_CONVER'], 1),
                 round($stock['risk'], 2),
                 $stock['ticketPrice'],
+                $stock['FLD_WAR_UP_DN_RATE'],
                 $stock['leverage'],
                 $stock['FLD_LEVERAGE'],
-                $stock['FLD_WAR_UP_DN_RATE'],
             ]);
         }
 
@@ -170,6 +170,10 @@ class CrawlWarrant extends Command
 
             if (env('MODE') == '5') {
                 return (double) $prev['FLD_WAR_UP_DN_RATE'] > (double) $next['FLD_WAR_UP_DN_RATE'] ? 1 : -1;
+            }
+
+            if (env('MODE') == '6') {
+                return $prev['FLD_WAR_TXN_VOLUME'] > $next['FLD_WAR_TXN_VOLUME'] ? 1 : -1;
             }
 
             return $prev['actualPrice'] > $next['actualPrice'] ? -1 : 1;
