@@ -16,7 +16,7 @@ class CrawlWarrant extends Command
         'TYPE' => '認購/認售 {1: 認購, 2: 認售} (default: 1)',
         'PERCENTAGE' => '價內價外多少 % (default: 100)',
         'LEV' => '實質槓桿多少倍以上 (default: 0)',
-        'MODE' => '排序模式 {1: 實槓, 2: 風險(每日承擔成本), 3: 實槓近成槓 4: 剩餘天數x槓桿÷總價 (default: 總價), 5: 漲幅排行 6: 成交量}',
+        'SORT' => '排序模式 {1: 實槓, 2: 風險(每日承擔成本), 3: 實槓近成槓 4: 剩餘天數x槓桿÷總價 (default: 總價), 5: 漲幅排行 6: 成交量}',
         'MONEY' => '價內外 {1: 價內, 2: 價外} (default: 全部)',
     ];
 
@@ -152,27 +152,27 @@ class CrawlWarrant extends Command
         unset($row);
 
         usort($data, function ($prev, $next) {
-            if (env('MODE') == '1') {
+            if (env('SORT') == '1') {
                 return $prev['FLD_LEVERAGE'] > $next['FLD_LEVERAGE'] ? 1 : -1;
             }
 
-            if (env('MODE') == '2') {
+            if (env('SORT') == '2') {
                 return $prev['risk'] > $next['risk'] ? -1 : 1;
             }
 
-            if (env('MODE') == '3') {
+            if (env('SORT') == '3') {
                 return abs(1 - abs((float)$prev['FLD_LEVERAGE'] / (float)$prev['leverage'])) > abs(1 - abs((float)$next['FLD_LEVERAGE'] / (float)$next['leverage'])) ? -1 : 1;
             }
 
-            if (env('MODE') == '4') {
+            if (env('SORT') == '4') {
                 return $prev['secret'] > $next['secret'] ? 1 : -1;
             }
 
-            if (env('MODE') == '5') {
+            if (env('SORT') == '5') {
                 return (double) $prev['FLD_WAR_UP_DN_RATE'] > (double) $next['FLD_WAR_UP_DN_RATE'] ? 1 : -1;
             }
 
-            if (env('MODE') == '6') {
+            if (env('SORT') == '6') {
                 return $prev['FLD_WAR_TXN_VOLUME'] > $next['FLD_WAR_TXN_VOLUME'] ? 1 : -1;
             }
 
