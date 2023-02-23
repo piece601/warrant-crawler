@@ -10,6 +10,16 @@ use Symfony\Component\Console\Output\ConsoleOutput;
 class CrawlWarrant extends Command
 {
     const URL = 'https://www.warrantwin.com.tw/eyuanta/ws/GetWarData.ashx';
+
+    protected array $envDescription = [
+        'DAYS' => '幾天以外到期 (default: 100)',
+        'TYPE' => '認購/認售 {1: 認購, 2: 認售} (default: 1)',
+        'PERCENTAGE' => '價內價外多少 % (default: 100)',
+        'LEV' => '實質槓桿多少倍以上 (default: 0)',
+        'MODE' => '排序模式 {1: 實槓, 2: 風險(每日承擔成本), 3: 實槓近成槓} (default: 總價)',
+        'MONEY' => '價內外 {1: 價內, 2: 價外} (default: 全部)',
+    ];
+
     /**
      * The name and signature of the console command.
      *
@@ -58,22 +68,32 @@ class CrawlWarrant extends Command
 
         $resource = $this->parserResponse($resource->body());
         foreach ($resource as $stock) {
+            // 槓桿
+            if (env('LEV') && $stock['FLD_LEVERAGE'] < env('LEV')) {
+                continue;
+            }
 
-            // if ($stock['FLD_LEVERAGE'] < 7) {
-            //     continue;
-            // }
-            // 履約價 > 股價 1.1 倍
-            // if ((double)$stock['FLD_N_STRIKE_PRC'] > (double)$stock['FLD_OBJ_TXN_PRICE'] * 1.2) {
-            //     continue;
-            // }
-            // 總價
-            $actualPrice = round($stock['actualPrice'], 2);
+            // 只顯示價內
+            if (
+                env('MONEY') == '1'
+                && (double)$stock['FLD_N_STRIKE_PRC'] > (double)$stock['FLD_OBJ_TXN_PRICE']
+            ) {
+                continue;
+            }
+
+            // 只顯示價外
+            if (
+                env('MONEY') == '2'
+                && (double)$stock['FLD_N_STRIKE_PRC'] < (double)$stock['FLD_OBJ_TXN_PRICE']
+            ) {
+                continue;
+            }
 
             $table->addRow([
                 $stock['FLD_OPTION_TYPE'],
                 $stock['FLD_WAR_ID'],
                 $stock['FLD_WAR_NM'],
-                $actualPrice,
+                round($stock['actualPrice'], 2),
                 $stock['FLD_WAR_TXN_PRICE'],
                 $stock['FLD_WAR_SELL_PRICE'],
                 $stock['FLD_WAR_TXN_VOLUME'],
@@ -87,9 +107,10 @@ class CrawlWarrant extends Command
         }
 
         $table->render();
+        $this->showEnvDescription();
     }
 
-    private function parserResponse(string $data) : array
+    protected function parserResponse(string $data) : array
     {
         $data = json_decode($data, true);
         $data = $data['result'];
@@ -132,11 +153,30 @@ class CrawlWarrant extends Command
         unset($row);
 
         usort($data, function ($prev, $next) {
-            // return $prev['FLD_LEVERAGE'] > $next['FLD_LEVERAGE'] ? 1 : -1;
-            return abs(1 - abs((float)$prev['FLD_LEVERAGE'] / (float)$prev['leverage'])) > abs(1 - abs((float)$next['FLD_LEVERAGE'] / (float)$next['leverage'])) ? -1 : 1;
-            // return $prev['actualPrice'] > $next['actualPrice'] ? -1 : 1;
+            if (env('MODE') == '1') {
+                return $prev['FLD_LEVERAGE'] > $next['FLD_LEVERAGE'] ? 1 : -1;
+            }
+
+            if (env('MODE') == '2') {
+                return $prev['risk'] > $next['risk'] ? -1 : 1;
+            }
+
+            if (env('MODE') == '3') {
+                return abs(1 - abs((float)$prev['FLD_LEVERAGE'] / (float)$prev['leverage'])) > abs(1 - abs((float)$next['FLD_LEVERAGE'] / (float)$next['leverage'])) ? -1 : 1;
+            }
+
+            return $prev['actualPrice'] > $next['actualPrice'] ? -1 : 1;
         });
         return $data;
+    }
+
+    protected function showEnvDescription()
+    {
+        printf('###參數規則###%s', PHP_EOL);
+        collect($this->envDescription)->each(function($value, $key) {
+            printf('%s: %s%s', $key, $value, PHP_EOL);
+        });
+        printf('###參數規則###%s', PHP_EOL);
     }
 
     private function getPayload(
