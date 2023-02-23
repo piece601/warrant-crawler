@@ -5,6 +5,8 @@ namespace App\Console\Commands;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Http;
 use Symfony\Component\Console\Helper\Table;
+use Symfony\Component\Console\Helper\TableSeparator;
+use Symfony\Component\Console\Helper\TableCell;
 use Symfony\Component\Console\Output\ConsoleOutput;
 
 class CrawlWarrant extends Command
@@ -18,6 +20,24 @@ class CrawlWarrant extends Command
         'LEV' => '實質槓桿多少倍以上 (default: 0)',
         'SORT' => '排序模式 {1: 成槓, 2: 風險(每日承擔成本), 3: 實槓近成槓 4: 槓桿÷價差, 5: 漲幅排行 6: 成交量}',
         'MONEY' => '價內外 {1: 價內, 2: 價外} (default: 全部)',
+    ];
+
+    protected array $headers = [
+        '類型',
+        'stock',
+        'name',
+        '總價',
+        '成交價',
+        '委賣價',
+        '量',
+        '剩餘天數',
+        '湊一張',
+        '風險',
+        '張價',
+        '%',
+        '槓桿/價差',
+        '成槓',
+        '實槓',
     ];
 
     /**
@@ -50,23 +70,7 @@ class CrawlWarrant extends Command
             'data' => $payload
         ]);
         $table = new Table(new ConsoleOutput());
-        $table->setHeaders([
-            '類型',
-            'stock',
-            'name',
-            '總價',
-            '成交價',
-            '委賣價',
-            '量',
-            '剩餘天數',
-            '湊一張',
-            '風險',
-            '張價',
-            '%',
-            '槓桿/價差',
-            '成槓',
-            '實槓',
-        ]);
+        $table->setHeaders($this->headers);
 
         $resource = $this->parserResponse($resource->body());
         foreach ($resource as $stock) {
@@ -110,8 +114,11 @@ class CrawlWarrant extends Command
             ]);
         }
 
+        $table->addRow(new TableSeparator());
+        $table->addRow($this->headers);
         $table->render();
-        $this->showEnvDescription();
+
+        print($this->showEnvDescription());
     }
 
     protected function parserResponse(string $data) : array
@@ -183,13 +190,12 @@ class CrawlWarrant extends Command
         return $data;
     }
 
-    protected function showEnvDescription()
+    protected function showEnvDescription(): string
     {
-        printf('###參數規則###%s', PHP_EOL);
-        collect($this->envDescription)->each(function($value, $key) {
-            printf('%s: %s%s', $key, $value, PHP_EOL);
-        });
-        printf('###參數規則###%s', PHP_EOL);
+        return collect($this->envDescription)
+            ->reduce(function($carry, $value, $key) {
+                return $carry . sprintf('%s: %s%s', $key, $value, PHP_EOL);
+            });
     }
 
     private function getPayload(
