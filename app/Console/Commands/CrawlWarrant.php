@@ -20,6 +20,7 @@ class CrawlWarrant extends Command
         'LEV' => '實質槓桿多少倍以上 (default: 0)',
         'SORT' => '排序模式 {1: 成槓, 2: 風險(每日承擔成本), 3: 實槓近成槓 4: 槓桿÷價差, 5: 漲幅排行 6: 成交量}',
         'MONEY' => '價內外 {1: 價內, 2: 價外} (default: 全部)',
+        'LOWER_PRICE' => '總價低於此價格',
     ];
 
     protected array $headers = [
@@ -74,6 +75,10 @@ class CrawlWarrant extends Command
 
         $resource = $this->parserResponse($resource->body());
         foreach ($resource as $stock) {
+            if (env("LOWER_PRICE") && $stock['actualPrice'] > env("LOWER_PRICE") ) {
+                continue;
+            }
+
             // 槓桿
             if (env('LEV') && $stock['FLD_LEVERAGE'] < env('LEV')) {
                 continue;
