@@ -44,7 +44,10 @@ class TravelContent extends Command
             'accessToken' => 'Bearer ' . $this->token
         ])
         ->accept('application/json')
+        // 奈良
         ->get('https://tcapp.tripellet.com/api/app/customer/award_activity?minLongitude=137.3872919082642&maxLongitude=143.3872919082642&minLatitude=32.77325759103725&maxLatitude=38.77325759103725')
+        // 名古屋
+        // ->get('https://tcapp.tripellet.com/api/app/customer/award_activity?minLongitude=133.8837275&maxLongitude=139.8837275&minLatitude=32.1715939&maxLatitude=38.1715939')
         ->json()['data']['list'];
     }
 
