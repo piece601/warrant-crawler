@@ -11,8 +11,6 @@ class TravelContent extends Command
         '';
     protected $userAgent =
         'Mozilla/5.0 (iPhone; CPU iPhone OS 16_4_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148 Html5Plus/1.0 (Immersed/44) uni-app';
-    protected $longitude = '';
-    protected $latitude = '';
 
     /**
      * The name and signature of the console command.
@@ -59,18 +57,22 @@ class TravelContent extends Command
                 }
             }
 
-            $response = $this->markAward(
-                $award['longitude'],
-                $award['latitude'],
-                $award['id']
-            );
+            try {
+                $response = $this->markAward(
+                    $award['longitude'],
+                    $award['latitude'],
+                    $award['id']
+                )->json();
+            } catch (\Exception $e) {
+                printf('Error: %s, but ignore.%s', $e->getMessage(), PHP_EOL);
+                continue;
+            }
 
             if ($response['code'] != 0) {
                 continue;
             }
 
             printf('AwardId: %s, ActivityName: %s, Points: %s%s', $award['id'], $award['activityName'], $award['points'], PHP_EOL);
-            usleep(rand(200000, 1000000));
         }
     }
 
@@ -85,6 +87,6 @@ class TravelContent extends Command
             "awardActivityId" => $awardId,
             "latitude" => $latitude,
             "longitude" => $longitude,
-        ])->json();
+        ]);
     }
 }
