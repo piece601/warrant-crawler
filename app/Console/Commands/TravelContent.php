@@ -73,6 +73,7 @@ class TravelContent extends Command
             }
 
             printf('AwardId: %s, ActivityName: %s, Points: %s%s', $award['id'], $award['activityName'], $award['points'], PHP_EOL);
+            usleep(rand(200000, 500000));
         }
     }
 
